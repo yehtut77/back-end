@@ -3,11 +3,18 @@
 const mysql = require('mysql');
 
 // Create a connection pool to the MySQL database
+// const pool = mysql.createPool({
+//   connectionLimit: 10,
+//   host: 'hs-cargo.mysql.database.azure.com', // Change this to your MySQL host
+//   user: 'yehtut77', // Change this to your MySQL user
+//   password: 'Casp77254178301546', // Change this to your MySQL password
+//   database: 'hs_cargo' // Change this to your MySQL database
+// });
 const pool = mysql.createPool({
   connectionLimit: 10,
-  host: 'hs-cargo.mysql.database.azure.com', // Change this to your MySQL host
-  user: 'yehtut77', // Change this to your MySQL user
-  password: 'Casp77254178301546', // Change this to your MySQL password
+  host: 'localhost', // Change this to your MySQL host
+  user: 'root', // Change this to your MySQL user
+  password: 'YEhtut254178', // Change this to your MySQL password
   database: 'hs_cargo' // Change this to your MySQL database
 });
 

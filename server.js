@@ -13,6 +13,7 @@ const { received } = require('./modules/recevied');
 const { update_unpaid_parcel } = require('./modules/update_unpaid_parcel'); 
 const { query } = require('./config/mysql-config');
 const { tracking_status } = require('./modules/tracking_status');
+const { report } = require('./modules/report');
 
 const corsOptions ={
   origin:'http://localhost:3000', 
@@ -103,6 +104,17 @@ app.post('/search_tracking_num', async (req, res) => {
   try {
     const { tracking_num } = req.body;
     const data = await search_tracking_num(tracking_num); // Await the async function
+    res.status(200).json(data);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.post('/report', async (req, res) => {
+  try {
+    const { from_date,to_date,office } = req.body;
+    const newData = {from_date,to_date,office}
+    const data = await report(newData); // Await the async function
     res.status(200).json(data);
   } catch (error) {
     console.error("Error fetching data:", error);
