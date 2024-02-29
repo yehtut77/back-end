@@ -14,8 +14,14 @@ const { update_unpaid_parcel } = require('./modules/update_unpaid_parcel');
 const { query } = require('./config/mysql-config');
 const { tracking_status } = require('./modules/tracking_status');
 const { report } = require('./modules/report');
+const fs = require('fs');
 
+const privateKey = fs.readFileSync('myserver.key', 'utf8');
+const certificate = fs.readFileSync('myserver.crt', 'utf8');
 
+const credentials = { key: privateKey, cert: certificate };
+
+const httpsServer = https.createServer(credentials, app);
 
 
 const app = express(); 
@@ -215,6 +221,6 @@ app.get('/check_authentication',isAuthenticated, (req, res) => {
   res.status(200).send('ok');
 });
 
-app.listen(PORT, () => {
+httpsServer.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
