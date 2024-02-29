@@ -159,6 +159,9 @@ app.get('/offices',isAuthenticated, async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+app.get('/', async (req, res) => {
+ res.send("it's work");
+});
 app.get('/payment_method',isAuthenticated, async (req, res) => {
   try {
     const payments = await fetch_payment();
