@@ -15,15 +15,11 @@ const { query } = require('./config/mysql-config');
 const { tracking_status } = require('./modules/tracking_status');
 const { report } = require('./modules/report');
 
-const corsOptions ={
-  origin:'http://localhost:3000', 
-  credentials:true,            //access-control-allow-credentials:true
-  optionSuccessStatus:200
-}
+
 
 
 const app = express(); 
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(session({
   secret: 'secret',
   resave: false,
