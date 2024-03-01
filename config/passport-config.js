@@ -4,6 +4,8 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
 const { query } = require('./mysql-config'); // Import your MySQL configuration
+const JwtStrategy = require('passport-jwt').Strategy;
+const ExtractJwt = require('passport-jwt').ExtractJwt;
 
 passport.use(new LocalStrategy({
     usernameField: 'username'
@@ -31,7 +33,27 @@ passport.use(new LocalStrategy({
     }
   }
 ));
+const jwtOptions = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: process.env.JWT_SECRET // 
+};
 
+// JWT strategy
+passport.use(new JwtStrategy(jwtOptions, async (jwt_payload, done) => {
+  try {
+    const sql = 'SELECT * FROM users WHERE user_id = ?';
+    const result = await query(sql, [jwt_payload.sub]); 
+    const user = result[0];
+
+    if (user) {
+      return done(null, user); // User found
+    } else {
+      return done(null, false); // User not found
+    }
+  } catch (error) {
+    return done(error, false);
+  }
+}));
 passport.serializeUser((user, done) => {
   done(null, user.user_id);
 });
@@ -52,7 +74,7 @@ const isAuthenticated = (req, res, next) => {
   if (req.isAuthenticated()) {
     return next(); // User is authenticated, continue to next middleware
   }
-  res.status(400).json("Not Authorised");
+  res.status(401).json("Not Authorised");
   // User is not authenticated, respond with an error
 };
 

@@ -1,4 +1,5 @@
 // server.js
+require('dotenv').config();
 
 const express = require('express');
 const session = require('express-session');
@@ -14,13 +15,19 @@ const { update_unpaid_parcel } = require('./modules/update_unpaid_parcel');
 const { query } = require('./config/mysql-config');
 const { tracking_status } = require('./modules/tracking_status');
 const { report } = require('./modules/report');
+const jwt = require('jsonwebtoken'); // Make sure jsonwebtoken is imported
 
-
+// const corsOptions = {
+//   origin: 'https://hs-cargo-kxbrm3g0x-ye-htut-khaungs-projects.vercel.app', // Specify the origin you are allowing
+//   credentials: true, // This is important for cookies, authorization headers with HTTPS
+//   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+// };
 const corsOptions = {
-  origin: 'https://hs-cargo-kxbrm3g0x-ye-htut-khaungs-projects.vercel.app', // Specify the origin you are allowing
+  origin: 'http://localhost:3000', // Specify the origin you are allowing
   credentials: true, // This is important for cookies, authorization headers with HTTPS
   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
+
 
 const app = express(); 
 app.use(cors(corsOptions));
@@ -51,16 +58,23 @@ app.post('/login', (req, res, next) => {
     if (!user) {
       return res.status(401).json({ message: info.message });
     }
-    req.logIn(user, (err) => {
-      if (err) {
-        return res.status(500).json({ message: 'Error logging in' });
-      }
-      // Login successful, send back the user ID
-      return res.status(200).json({ message: 'ok', userId: user.user_id });
+    // User authenticated, proceed to token generation
+    // Note: No need for req.logIn with JWT, as we don't use session cookies
+    const payload = {
+      sub: user.user_id, // Use user ID as JWT subject
+      username: user.username // You can include more user information if needed
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' }); // Generate JWT token
+
+    // Respond with JWT token
+    return res.status(200).json({
+      message: 'ok',
+      token: token, // Send the token to the client
+      userId: user.user_id // Include the user ID in the response
     });
   })(req, res, next);
 });
-app.post('/received' ,isAuthenticated, async(req, res) => {
+app.post('/received' ,passport.authenticate('jwt', { session: false }), async(req, res) => {
   const { waybills } = req.body;
   if (waybills.length === 0) {
     return res.status(400).send('No waybills provided.');
@@ -79,7 +93,7 @@ app.post('/received' ,isAuthenticated, async(req, res) => {
  
 })
 
-app.post('/registration' ,isAuthenticated, async(req, res) => {
+app.post('/registration' ,passport.authenticate('jwt', { session: false }), async(req, res) => {
   var registration_code = '';
   try{
     const {from_country,pickup_date,received_date,sender_name,sender_phone,receiver_name,receiver_phone,
@@ -109,7 +123,7 @@ app.post('/search_tracking_num', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
-app.post('/report', async (req, res) => {
+app.post('/report', passport.authenticate('jwt', { session: false }),async (req, res) => {
   try {
     const { from_date,to_date,office } = req.body;
     const newData = {from_date,to_date,office}
@@ -130,7 +144,7 @@ app.post('/tracking_status', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
-app.post('/update_unpaid', isAuthenticated,async (req, res) => {
+app.post('/update_unpaid', passport.authenticate('jwt', { session: false }),async (req, res) => {
   try {
     const { tracking_num,paid_check,payment_method } = req.body;
     const update_data = {tracking_num,paid_check,payment_method};
@@ -143,7 +157,7 @@ app.post('/update_unpaid', isAuthenticated,async (req, res) => {
   res.status(200).send('Successfully Updated');
 });
 
-app.post('/create_user', isAuthenticated,async (req, res) => {
+app.post('/create_user', passport.authenticate('jwt', { session: false }),async (req, res) => {
   try {
     const { username, password, given_name, office } = req.body;
     const newUser = { username, password, given_name, office };
@@ -161,7 +175,7 @@ app.post('/create_user', isAuthenticated,async (req, res) => {
   }
 });
 
-app.get('/offices',isAuthenticated, async (req, res) => {
+app.get('/offices',passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
     const offices = await fetch_office();
     res.status(200).json(offices); // Send offices as the response
@@ -173,7 +187,7 @@ app.get('/offices',isAuthenticated, async (req, res) => {
 app.get('/', async (req, res) => {
  res.send("it's work");
 });
-app.get('/payment_method',isAuthenticated, async (req, res) => {
+app.get('/payment_method',passport.authenticate('jwt', { session: false }), async (req, res) => {
   try {
     const payments = await fetch_payment();
     res.status(200).json(payments); // Send offices as the response
@@ -192,7 +206,7 @@ app.get('/logout', (req, res) => {
   res.status(200).send("Successfully Logout");
 });
 
-app.get('/fetch_countries', isAuthenticated, async(req, res) => {
+app.get('/fetch_countries', passport.authenticate('jwt', { session: false }), async(req, res) => {
   try {
   
 
@@ -214,7 +228,7 @@ app.get('/fetch_countries', isAuthenticated, async(req, res) => {
     console.error('Error performing database operation:', err);
   }
 });
-app.get('/check_authentication',isAuthenticated, (req, res) => {
+app.get('/check_authentication',passport.authenticate('jwt', { session: false }), (req, res) => {
   res.status(200).send('ok');
 });
 
