@@ -16,10 +16,14 @@ const { tracking_status } = require('./modules/tracking_status');
 const { report } = require('./modules/report');
 
 
-
+const corsOptions = {
+  origin: 'https://hs-cargo-kxbrm3g0x-ye-htut-khaungs-projects.vercel.app', // Specify the origin you are allowing
+  credentials: true, // This is important for cookies, authorization headers with HTTPS
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+};
 
 const app = express(); 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(session({
   secret: 'secret',
   resave: false,
