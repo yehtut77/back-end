@@ -14,8 +14,7 @@ const { update_unpaid_parcel } = require('./modules/update_unpaid_parcel');
 const { query } = require('./config/mysql-config');
 const { tracking_status } = require('./modules/tracking_status');
 const { report } = require('./modules/report');
-const https = require('https');
-const fs = require('fs');
+
 
 
 
@@ -35,15 +34,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(passport.initialize());
-const privateKey = fs.readFileSync('myserver.key', 'utf8');
-const certificate = fs.readFileSync('myserver.crt', 'utf8');
-
-const credentials = { key: privateKey, cert: certificate };
-
-const httpsServer = https.createServer(credentials, app);
 
 
-// Routes
 // server.js
 
 // Replace the existing '/login' route with the following
@@ -222,6 +214,6 @@ app.get('/check_authentication',isAuthenticated, (req, res) => {
   res.status(200).send('ok');
 });
 
-httpsServer.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
