@@ -18,7 +18,7 @@ const { report } = require('./modules/report');
 const jwt = require('jsonwebtoken'); // Make sure jsonwebtoken is imported
 
 const corsOptions = { 
-  origin: 'https://vercel.com/ye-htut-khaungs-projects/hs-cargo/EZCxEHommeLhERc4YPrNexMmNCcc', // Specify the origin you are allowing
+  origin: 'https://hs-cargo-kcio04wvk-ye-htut-khaungs-projects.vercel.app', // Specify the origin you are allowing
   credentials: true, // This is important for cookies, authorization headers with HTTPS
   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
