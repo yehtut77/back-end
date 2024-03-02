@@ -17,8 +17,19 @@ const { tracking_status } = require('./modules/tracking_status');
 const { report } = require('./modules/report');
 const jwt = require('jsonwebtoken'); // Make sure jsonwebtoken is imported
 
-const corsOptions = { 
-  origin: 'https://hs-cargo-kcio04wvk-ye-htut-khaungs-projects.vercel.app', // Specify the origin you are allowing
+const allowedOrigins = [
+  'https://hs-cargo-kcio04wvk-ye-htut-khaungs-projects.vercel.app',
+  'https://hs-cargo.vercel.app'
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: true, // This is important for cookies, authorization headers with HTTPS
   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
