@@ -83,7 +83,7 @@ app.post('/login', (req, res, next) => {
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
     res.cookie('token', token, { httpOnly: true, 
       secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'strict', 
+      sameSite: 'None', 
       maxAge: 24 * 60 * 60 * 1000 });
 
     res.status(200).json({ message: 'ok', userId: user.user_id, isAdmin: user.isAdmin });
