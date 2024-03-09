@@ -35,6 +35,7 @@ const limiter = rateLimit({
 const allowedOrigins = [
   'https://hs-cargo-iqh3jnxex-ye-htut-khaungs-projects.vercel.app',
   'https://hs-cargo.vercel.app',
+  'http://localhost:3000'
   
 ];
 
@@ -82,10 +83,10 @@ app.post('/login', (req, res, next) => {
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
     res.cookie('token', token, { 
-      domain: 'https://hs-cargo.vercel.app',
+    
       httpOnly: true, 
       secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'None',
+      sameSite: 'Strict',
       maxAge: 24 * 60 * 60 * 1000 });
 
     res.status(200).json({ message: 'ok', userId: user.user_id, isAdmin: user.isAdmin });
