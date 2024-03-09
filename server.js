@@ -33,7 +33,7 @@ const limiter = rateLimit({
 });
 
 const allowedOrigins = [
-  'https://hs-cargo-iqh3jnxex-ye-htut-khaungs-projects.vercel.app',
+  'https://www.casperstore.store',
   'https://hs-cargo.vercel.app',
   'http://localhost:3000'
   
