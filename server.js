@@ -35,7 +35,7 @@ const limiter = rateLimit({
 const allowedOrigins = [
   'https://hs-cargo-kcio04wvk-ye-htut-khaungs-projects.vercel.app',
   'https://hs-cargo.vercel.app',
-  'http://localhost:3000'
+  
 ];
 
 const corsOptions = {
@@ -52,6 +52,7 @@ const corsOptions = {
 
 
 const app = express(); 
+app.set('trust proxy', true);
 app.use(cors(corsOptions));
 app.use(helmet());
 
