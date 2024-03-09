@@ -17,7 +17,7 @@ const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
     var tracking_no = '';
   try {
   
-    console.log(prefix);
+   // console.log(prefix);
     //  Select all rows from a table
     var last_number = '000000';
     var sql = 'SELECT last_number FROM key_notes where prefix = ?';

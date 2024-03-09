@@ -2,24 +2,40 @@
 require('dotenv').config();
 
 const express = require('express');
-const session = require('express-session');
 const cors = require('cors');
+const helmet = require('helmet');
 const {passport, isAuthenticated} = require('./config/passport-config');
 const {registration_save} = require('./modules/registration_save');
 const { search_tracking_num } = require('./modules/search_tracking')
 const { create_user } = require('./modules/create_user')
 const { fetch_office } = require('./modules/fetch_offices'); 
+const { fetch_currencies } = require('./modules/fetch_currencies'); 
 const { fetch_payment } = require('./modules/fetch_payment'); 
 const { received } = require('./modules/recevied'); 
 const { update_unpaid_parcel } = require('./modules/update_unpaid_parcel'); 
 const { query } = require('./config/mysql-config');
 const { tracking_status } = require('./modules/tracking_status');
 const { report } = require('./modules/report');
-const jwt = require('jsonwebtoken'); // Make sure jsonwebtoken is imported
+const { update_currency } = require('./modules/update_currencies');
+const { add_currency } = require('./modules/add_currency');
+const { update_payment_method } = require('./modules/update_payment_method');
+const { add_payment_method } = require('./modules/add_payment_method');
+const { update_offices } = require('./modules/update_offices');
+const {  add_offices } = require('./modules/add_offices');
+const jwt = require('jsonwebtoken'); 
+const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
 
 const allowedOrigins = [
   'https://hs-cargo-kcio04wvk-ye-htut-khaungs-projects.vercel.app',
-  'https://hs-cargo.vercel.app'
+  'https://hs-cargo.vercel.app',
+  'http://localhost:3000'
 ];
 
 const corsOptions = {
@@ -30,61 +46,47 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'))
     }
   },
-  credentials: true, // This is important for cookies, authorization headers with HTTPS
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  credentials: true, 
+  optionsSuccessStatus: 200 
 };
-// const corsOptions = {
-//   origin: 'http://localhost:3000', // Specify the origin you are allowing
-//   credentials: true, // This is important for cookies, authorization headers with HTTPS
-//   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
-// };
 
 
 const app = express(); 
 app.use(cors(corsOptions));
-app.use(session({
-  secret: 'secret',
-  resave: false,
-  saveUninitialized: false,
-   
-}));
-app.use(passport.session());
+app.use(helmet());
+
+app.use(limiter);
 
 const PORT = process.env.PORT || 8000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use(cookieParser());
 app.use(passport.initialize());
 
 
 // server.js
 
-// Replace the existing '/login' route with the following
+
 app.post('/login', (req, res, next) => {
   passport.authenticate('local', (err, user, info) => {
-    if (err) {
-      return res.status(500).json({ message: 'Internal Server Error' });
+    if (err || !user) {
+      return res.status(401).json({ message: info ? info.message : 'Login failed' });
     }
-    if (!user) {
-      return res.status(401).json({ message: info.message });
-    }
-    // User authenticated, proceed to token generation
-    // Note: No need for req.logIn with JWT, as we don't use session cookies
-    const payload = {
-      sub: user.user_id, // Use user ID as JWT subject
-      username: user.username // You can include more user information if needed
-    };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' }); // Generate JWT token
 
-    // Respond with JWT token
-    return res.status(200).json({
-      message: 'ok',
-      token: token, // Send the token to the client
-      userId: user.user_id // Include the user ID in the response
-    });
+    const payload = {
+      sub: user.user_id,
+      isAdmin: user.isAdmin 
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
+
+    res.status(200).json({ message: 'ok', userId: user.user_id, isAdmin: user.isAdmin });
   })(req, res, next);
 });
+
+
 app.post('/received' ,passport.authenticate('jwt', { session: false }), async(req, res) => {
   const { waybills } = req.body;
   if (waybills.length === 0) {
@@ -108,12 +110,12 @@ app.post('/registration' ,passport.authenticate('jwt', { session: false }), asyn
   var registration_code = '';
   try{
     const {from_country,pickup_date,received_date,sender_name,sender_phone,receiver_name,receiver_phone,
-      receiver_township,paid_check,payment_method,total_amt,qty,parcel_desc,deli_method,user_id,receiver_address,weight} = req.body;
-      console.log(req.body);
+      receiver_township,paid_check,payment_method,total_amt,qty,parcel_desc,deli_method,user_id,receiver_address,weight,parcel_type,currency} = req.body;
+     // console.log(req.body);
       const newRegistration = {from_country,pickup_date,received_date,sender_name,sender_phone,receiver_name,receiver_phone,
-        receiver_township,paid_check,payment_method,total_amt,qty,parcel_desc,deli_method,user_id,receiver_address,weight};
+        receiver_township,paid_check,payment_method,total_amt,qty,parcel_desc,deli_method,user_id,receiver_address,weight,parcel_type,currency};
          registration_code = await registration_save(newRegistration);
-         console.log("reg code server js"+registration_code);
+       //  console.log("reg code server js"+registration_code);
 
   }catch(err) {
     console.error('Error inserting data:',err);
@@ -180,7 +182,7 @@ app.post('/create_user', passport.authenticate('jwt', { session: false }),async 
     if (error.type === 'user-exists') {
       return res.status(409).json({ error: 'Username already exists' });
     } else {
-      // Since you're not using 'database-error' type anywhere, you might consider simplifying to a default error response
+     
       return res.status(500).json({ error: 'An unexpected error occurred' });
     }
   }
@@ -192,6 +194,15 @@ app.get('/offices',passport.authenticate('jwt', { session: false }), async (req,
     res.status(200).json(offices); // Send offices as the response
   } catch (error) {
     console.error("Error fetching offices:", error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.get('/currencies',passport.authenticate('jwt', { session: false }), async (req, res) => {
+  try {
+    const currencies = await fetch_currencies();
+    res.status(200).json(currencies); // Send offices as the response
+  } catch (error) {
+    console.error("Error fetching currencies:", error);
     res.status(500).send('Internal Server Error');
   }
 });
@@ -207,14 +218,101 @@ app.get('/payment_method',passport.authenticate('jwt', { session: false }), asyn
     res.status(500).send('Internal Server Error');
   }
 });
+app.post('/add_payment_method',passport.authenticate('jwt', { session: false }), async (req, res) => {
+  try {
+    const paymentData = req.body; 
+    const payments = await add_payment_method(paymentData);
+    if (payments.affectedRows > 0) {
+      res.status(200).json({ message: "Add New Currency successfully" });
+    } else {
+      res.status(404).json({ message: "Currency not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching offices:", error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.post('/add_currency',passport.authenticate('jwt', { session: false }), async (req, res) => {
+  try {
+    const currencyData = req.body; 
+    const currencies = await add_currency(currencyData);
+    if (currencies.affectedRows > 0) {
+      res.status(200).json({ message: "Add New Currency successfully" });
+    } else {
+      res.status(404).json({ message: "Currency not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching offices:", error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.post('/add_office',passport.authenticate('jwt', { session: false }), async (req, res) => {
+  try {
+    const officeData = req.body; 
+    const offices = await add_offices(officeData);
+    if (offices.affectedRows > 0) {
+      res.status(200).json({ message: "Add New Offices successfully" });
+    } else {
+      res.status(404).json({ message: "Office not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching offices:", error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.put('/update_currencies/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const { id } = req.params; // Get the currency ID from the route parameters
+  const currencyData = req.body; // Assuming the new currency data is sent in the request body
+
+  try {
+    const updateResults = await update_currency(id, currencyData);
+    if (updateResults.affectedRows > 0) {
+      res.status(200).json({ message: "Currency updated successfully" });
+    } else {
+      res.status(404).json({ message: "Currency not found" });
+    }
+  } catch (error) {
+    console.error('Error updating currency:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.put('/update_offices/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const { id } = req.params; 
+  const officeData = req.body;
+
+  try {
+    const updateResults = await update_offices(id, officeData);
+    if (updateResults.affectedRows > 0) {
+      res.status(200).json({ message: "Currency updated successfully" });
+    } else {
+      res.status(404).json({ message: "Currency not found" });
+    }
+  } catch (error) {
+    console.error('Error updating currency:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.put('/update_payment_method/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const { id } = req.params;
+  const currencyData = req.body; 
+
+  try {
+    const updateResults = await update_payment_method(id, currencyData);
+    if (updateResults.affectedRows > 0) {
+      res.status(200).json({ message: "Payment Method updated successfully" });
+    } else {
+      res.status(404).json({ message: "Payment Method not found" });
+    }
+  } catch (error) {
+    console.error('Error updating payment method:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 // Logout route
 app.get('/logout', (req, res) => {
-  req.logout(function(err) {
-    if (err) { return next(err); }
-    //res.redirect('/');
-  });
-  
-  res.status(200).send("Successfully Logout");
+  res.clearCookie('token'); 
+  res.status(200).send("Successfully logged out");
 });
 
 app.get('/fetch_countries', passport.authenticate('jwt', { session: false }), async(req, res) => {

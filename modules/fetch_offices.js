@@ -9,7 +9,7 @@ const { query } = require('../config/mysql-config');
   
 
     //  Select all rows from a table
-   const offices = await query('SELECT office_name FROM offices');
+   const offices = await query('SELECT idoffices,office_name FROM offices');
    // console.log('Countries:', offices);
     return offices;
     //  Insert a new user into the database

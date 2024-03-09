@@ -25,6 +25,8 @@ const { generate_tracking_no} = require('../modules/generate_tracking');
    var parcel_desc = registration_data.parcel_desc;
    var deli_method = registration_data.deli_method;
    var weight = registration_data.weight;
+   var parcel_type = registration_data.parcel_type;
+   var curr_prefix = registration_data.currency;
 
    // Parse the date string to a Date object
 const pickupDate = new Date(pickup_date);
@@ -42,8 +44,8 @@ pickupDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
     const current_date = new Date();
     const formattedDate = current_date.toISOString().slice(0,19).replace('T',' ');
         const sql = 
-        "Insert into hs_reg(waybill_no,pickup_date,sender_name,sender_phone,rcvr_name,rcvr_phone,rcvr_township,payment_checklist,payment_method,total_amt,qty,parcel_desc,local_del_method,create_date,user_id,rcvr_address,weight)values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-    const values = [waybill_no,pickupDate,sender_name,sender_phone,receiver_name,receiver_phone,receiver_township,paid_check,payment_method,total_amt,qty,parcel_desc,deli_method,formattedDate,user,receiver_address,weight];
+        "Insert into hs_reg(waybill_no,pickup_date,sender_name,sender_phone,rcvr_name,rcvr_phone,rcvr_township,payment_checklist,payment_method,total_amt,qty,parcel_desc,local_del_method,create_date,user_id,rcvr_address,weight,parcel_type,curr_prefix_unpaid)values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    const values = [waybill_no,pickupDate,sender_name,sender_phone,receiver_name,receiver_phone,receiver_township,paid_check,payment_method,total_amt,qty,parcel_desc,deli_method,formattedDate,user,receiver_address,weight,parcel_type,curr_prefix];
      await query(sql,values);
 
      return waybill_no;

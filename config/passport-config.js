@@ -8,35 +8,42 @@ const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 
 passport.use(new LocalStrategy({
-    usernameField: 'username'
-  },
-  async (username, password, done) => {
-    try {
-      // Fetch user from database based on username
-      const sql = 'SELECT * FROM users WHERE user_name = ?';
-      const result = await query(sql, [username]);
-      const user = result[0]; // Assuming username is unique and there's only one result
-      
-      if (!user) {
-        return done(null, false, { message: 'Incorrect username.' });
-      }
+  usernameField: 'username'
+}, async (username, password, done) => {
+  try {
+   // console.log(`Authenticating user: ${username}`);
+    const sql = 'SELECT * FROM users WHERE user_name = ?';
+    const users = await query(sql, [username]);
 
-      // Compare hashed password from database with provided password
-      const match = await bcrypt.compare(password, user.password);
-      if (match) {
-        return done(null, user);
-      } else {
-        return done(null, false, { message: 'Incorrect password.' });
-      }
-    } catch (error) {
-      return done(error);
+    if (users.length === 0) {
+     // console.log('No user found with that username.');
+      return done(null, false, { message: 'Incorrect username.' });
     }
+
+    const user = users[0];
+    const match = await bcrypt.compare(password, user.password);
+
+    if (!match) {
+     // console.log('Password does not match.');
+      return done(null, false, { message: 'Incorrect password.' });
+    }
+
+   // console.log('User authenticated successfully.');
+    return done(null, user);
+  } catch (error) {
+    console.error('Error during authentication:', error);
+    return done(error);
   }
-));
+}));
+
+
 const jwtOptions = {
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: process.env.JWT_SECRET // 
+  jwtFromRequest: ExtractJwt.fromExtractors([
+      (req) => req.cookies['token'] 
+  ]),
+  secretOrKey: process.env.JWT_SECRET,
 };
+
 
 // JWT strategy
 passport.use(new JwtStrategy(jwtOptions, async (jwt_payload, done) => {

@@ -2,16 +2,16 @@
 const { query } = require('../config/mysql-config');
 
 // Perform database operations
- const fetch_payment = async (cb) =>
+ const fetch_currencies = async (cb) =>
 {
     
   try {
   
 
     //  Select all rows from a table
-   const payments = await query('SELECT idpayment_method,payment_method_name FROM payment_method');
-   // console.log('Countries:', payments);
-    return payments;
+   const currencies = await query('SELECT idcurrencies,curr_prefix,curr_desc FROM currencies');
+   // console.log('Countries:', offices);
+    return currencies;
     //  Insert a new user into the database
     
     //const result = await query('INSERT INTO hs_reg SET ?', newUser);
@@ -20,4 +20,4 @@ const { query } = require('../config/mysql-config');
     console.error('Error performing database operation:', err);
   }
 };
-module.exports = { fetch_payment };
+module.exports = { fetch_currencies };
