@@ -11,20 +11,25 @@ const { create_user } = require('./modules/create_user')
 const { fetch_office } = require('./modules/fetch_offices'); 
 const { fetch_currencies } = require('./modules/fetch_currencies'); 
 const { fetch_payment } = require('./modules/fetch_payment'); 
+const { fetch_users } = require('./modules/fetch_users'); 
 const { received } = require('./modules/recevied'); 
 const { update_unpaid_parcel } = require('./modules/update_unpaid_parcel'); 
 const { query } = require('./config/mysql-config');
 const { tracking_status } = require('./modules/tracking_status');
 const { report } = require('./modules/report');
+const { report_all } = require('./modules/report_all');
 const { update_currency } = require('./modules/update_currencies');
+const { update_users } = require('./modules/update_users');
 const { add_currency } = require('./modules/add_currency');
 const { update_payment_method } = require('./modules/update_payment_method');
 const { add_payment_method } = require('./modules/add_payment_method');
 const { update_offices } = require('./modules/update_offices');
 const {  add_offices } = require('./modules/add_offices');
+
 const jwt = require('jsonwebtoken'); 
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
+
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -89,7 +94,8 @@ app.post('/login', (req, res, next) => {
       sameSite: 'Strict',
       maxAge: 24 * 60 * 60 * 1000 });
 
-    res.status(200).json({ message: 'ok', userId: user.user_id, isAdmin: user.isAdmin });
+    res.status(200).json({ message: 'ok', userId: user.user_id, isAdmin: user.isAdmin , givenName: user.given_name, // Include given_name in the response
+    office: user.office});
   })(req, res, next);
 });
 
@@ -154,6 +160,17 @@ app.post('/report', passport.authenticate('jwt', { session: false }),async (req,
     res.status(500).send('Internal Server Error');
   }
 });
+app.post('/report_all', passport.authenticate('jwt', { session: false }),async (req, res) => {
+  try {
+    const { from_date,to_date } = req.body;
+    const newData = {from_date,to_date}
+    const data = await report_all(newData); // Await the async function
+    res.status(200).json(data);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).send('Internal Server Error');
+  }
+});
 app.post('/tracking_status', async (req, res) => {
   try {
     const { tracking_num } = req.body;
@@ -199,6 +216,15 @@ app.get('/offices',passport.authenticate('jwt', { session: false }), async (req,
   try {
     const offices = await fetch_office();
     res.status(200).json(offices); // Send offices as the response
+  } catch (error) {
+    console.error("Error fetching offices:", error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.get('/fetch_users',passport.authenticate('jwt', { session: false }), async (req, res) => {
+  try {
+    const users = await fetch_users();
+    res.status(200).json(users); 
   } catch (error) {
     console.error("Error fetching offices:", error);
     res.status(500).send('Internal Server Error');
@@ -289,6 +315,22 @@ app.put('/update_offices/:id', passport.authenticate('jwt', { session: false }),
 
   try {
     const updateResults = await update_offices(id, officeData);
+    if (updateResults.affectedRows > 0) {
+      res.status(200).json({ message: "Currency updated successfully" });
+    } else {
+      res.status(404).json({ message: "Currency not found" });
+    }
+  } catch (error) {
+    console.error('Error updating currency:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.put('/update_users/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const { id } = req.params; 
+  const usersData = req.body;
+
+  try {
+    const updateResults = await update_users(id, usersData);
     if (updateResults.affectedRows > 0) {
       res.status(200).json({ message: "Currency updated successfully" });
     } else {
