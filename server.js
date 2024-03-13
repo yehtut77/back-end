@@ -20,6 +20,7 @@ const { report } = require('./modules/report');
 const { report_all } = require('./modules/report_all');
 const { update_currency } = require('./modules/update_currencies');
 const { update_users } = require('./modules/update_users');
+const { update_password } = require('./modules/update_password');
 const { add_currency } = require('./modules/add_currency');
 const { update_payment_method } = require('./modules/update_payment_method');
 const { add_payment_method } = require('./modules/add_payment_method');
@@ -338,6 +339,22 @@ app.put('/update_users/:id', passport.authenticate('jwt', { session: false }), a
     }
   } catch (error) {
     console.error('Error updating currency:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+app.put('/psw_update/:id', passport.authenticate('jwt', { session: false }), async (req, res) => {
+  const { id } = req.params; 
+  const usersData = req.body;
+
+  try {
+    const updateResults = await update_password(id, usersData);
+    if (updateResults.affectedRows > 0) {
+      res.status(200).json({ message: "Password updated successfully" });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    console.error('Error updating Password:', error);
     res.status(500).send('Internal Server Error');
   }
 });
